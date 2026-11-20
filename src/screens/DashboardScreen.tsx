@@ -5,14 +5,25 @@ import { Card } from "../components/Card"
 import { Button } from "../components/Button"
 import { Modal } from "../components/Modal"
 import { Slider } from "../components/Slider"
-import { Plus, Check, Moon, Zap, Brain, Settings, Flame, Target, TrendingUp, Droplet, Dumbbell } from "lucide-react"
+import { Plus, Check, Moon, Zap, Brain, Settings, Flame, Target, TrendingUp, Droplet, Dumbbell, Scale, Minus } from "lucide-react"
 import { formatDateDisplay } from "../utils/calculations"
+
+// Safe date parsing
+const safeToDate = (value: Date | string | number | null | undefined): Date => {
+  if (value instanceof Date) return isNaN(value.getTime()) ? new Date() : value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
+};
 
 export const DashboardScreen: React.FC = () => {
   const { 
     profile, targets, getTodaysCalories, getTodaysProtein, getTodaysWater, 
     isCreatineTakenToday, addCreatineEntry, addWaterEntry, addSleepEntry, 
-    addSorenessEntry, setScreen, addFoodEntry, getTodaysWorkouts
+    addSorenessEntry, setScreen, addFoodEntry, getTodaysWorkouts,
+    bodyWeightHistory
   } = useStore()
   
   const [showSleepModal, setShowSleepModal] = useState(false)
@@ -85,7 +96,7 @@ export const DashboardScreen: React.FC = () => {
           </button>
         </div>
       </header>
-      <div className="p-4 pb-28 space-y-4">
+      <div className="p-4 pb-32 space-y-4">
         {/* Workout Status Card */}
         <Card padding="lg" className={workoutCompleted ? "border-2 border-mmrgb-primary/50 bg-mmrgb-primary/5" : ""}>
           <div className="flex items-center justify-between mb-3">
@@ -116,6 +127,48 @@ export const DashboardScreen: React.FC = () => {
             </div>
           ) : (
             <p className="text-sm text-mmrgb-textMuted">No workout completed today. Tap a routine to start.</p>
+          )}
+        </Card>
+
+        {/* Body Weight Tracking */}
+        <Card padding="lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-mmrgb-primary/20 flex items-center justify-center">
+              <Scale className="w-6 h-6 text-mmrgb-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-mmrgb-text">Body Weight</h2>
+              <p className="text-sm text-mmrgb-textMuted">Track your weight over time</p>
+            </div>
+          </div>
+          {bodyWeightHistory.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-mmrgb-text">
+                    {bodyWeightHistory[bodyWeightHistory.length - 1].weight}kg
+                  </span>
+                  {(() => {
+                    const latest = bodyWeightHistory[bodyWeightHistory.length - 1]
+                    const prev = bodyWeightHistory[bodyWeightHistory.length - 2]
+                    if (!prev) return null
+                    const diff = latest.weight - prev.weight
+                    return (
+                      <span className="text-sm flex items-center gap-1" style={{ color: diff > 0 ? "#ff4d6d" : diff < 0 ? "#00ff88" : "#888" }}>
+                        {diff > 0 ? <TrendingUp className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                        {Math.abs(diff).toFixed(1)}kg
+                      </span>
+                    )
+                  })()}
+                </div>
+                <span className="text-sm text-mmrgb-textMuted">
+                  {safeToDate(bodyWeightHistory[bodyWeightHistory.length - 1].date).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="text-xs text-mmrgb-textMuted">{bodyWeightHistory.length} entries logged</p>
+            </div>
+          ) : (
+            <p className="text-sm text-mmrgb-textMuted text-center py-4">No weight entries yet. Go to Settings to log your weight.</p>
           )}
         </Card>
 

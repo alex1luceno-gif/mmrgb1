@@ -5,14 +5,25 @@ import { Button } from "../components/Button"
 import { Input } from "../components/Input"
 import { Select } from "../components/Select"
 import { Modal } from "../components/Modal"
-import { Trash2, User, Download, Upload, AlertTriangle, Info } from "lucide-react"
+import { Trash2, User, Download, Upload, AlertTriangle, Info, Scale, TrendingUp, Minus, Plus } from "lucide-react"
 import type { Gender, ActivityLevel, Goal } from "../types"
 
 const formatDate = (date: Date) => date.toISOString().split("T")[0]
 
+// Safe date parsing - handles Date objects, ISO strings, timestamps, and invalid values
+const safeToDate = (value: Date | string | number | null | undefined): Date => {
+  if (value instanceof Date) return isNaN(value.getTime()) ? new Date() : value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
+};
+
 export const SettingsScreen: React.FC = () => {
-  const { profile, targets, setProfile, setTargets, foodEntries, workoutRoutines, bodyWeightHistory, sleepHistory, sorenessHistory, creatineHistory, waterHistory, dailyLogs, mealPresets } = useStore()
+  const { profile, targets, setProfile, setTargets, foodEntries, workoutRoutines, bodyWeightHistory, sleepHistory, sorenessHistory, creatineHistory, waterHistory, dailyLogs, mealPresets, addBodyWeight } = useStore()
   const [showResetModal, setShowResetModal] = useState(false)
+  const [weightInput, setWeightInput] = useState("")
 
   const profileForm = {
     height: profile?.height || 175,
@@ -21,6 +32,14 @@ export const SettingsScreen: React.FC = () => {
     gender: profile?.gender || "male" as Gender,
     activityLevel: profile?.activityLevel || "moderate" as ActivityLevel,
     goal: profile?.goal || "lean_bulk" as Goal
+  }
+
+  const handleAddWeight = () => {
+    const weight = Number(weightInput)
+    if (weight && weight > 0) {
+      addBodyWeight({ id: crypto.randomUUID(), weight, date: new Date() })
+      setWeightInput("")
+    }
   }
 
   const handleProfileSave = () => { setProfile(profileForm) }
@@ -74,7 +93,7 @@ export const SettingsScreen: React.FC = () => {
           <h1 className="text-2xl font-bold text-mmrgb-text">Settings</h1>
         </div>
       </header>
-      <div className="p-4 pb-28 space-y-4">
+      <div className="p-4 pb-32 space-y-4">
         {profile && (
           <Card padding="lg">
             <div className="flex items-center gap-3 mb-4">
@@ -144,6 +163,65 @@ export const SettingsScreen: React.FC = () => {
             </div>
           </Card>
         )}
+        {/* Body Weight Tracking */}
+        <Card padding="lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-mmrgb-primary/20 flex items-center justify-center">
+              <Scale className="w-6 h-6 text-mmrgb-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-mmrgb-text">Body Weight</h2>
+              <p className="text-sm text-mmrgb-textMuted">Track your weight over time</p>
+            </div>
+          </div>
+          <div className="flex gap-3 mb-4">
+            <Input 
+              label="Weight (kg)" 
+              type="number" 
+              value={weightInput} 
+              onChange={e => setWeightInput(e.target.value)} 
+              placeholder={profile?.weight?.toString() || "75"}
+              min={30} 
+              max={200} 
+              step={0.1}
+              className="flex-1"
+            />
+            <Button onClick={handleAddWeight} className="min-w-[100px]">
+              <Plus className="w-4 h-4" /> Log
+            </Button>
+          </div>
+          {bodyWeightHistory.length > 0 && (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              <p className="text-xs text-mmrgb-textMuted mb-2">Recent Entries</p>
+              {bodyWeightHistory
+                .slice()
+                .reverse()
+                .slice(0, 10)
+                .map((entry, idx) => {
+                  const prevEntry = bodyWeightHistory.slice().reverse()[idx + 1]
+                  const weightDiff = prevEntry ? entry.weight - prevEntry.weight : 0
+                  return (
+                    <div key={entry.id} className="flex items-center justify-between p-3 bg-mmrgb-surfaceElevated rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-mmrgb-textMuted">
+                          {safeToDate(entry.date).toLocaleDateString()}
+                        </span>
+                        <span className="text-lg font-bold text-mmrgb-text">
+                          {entry.weight}kg
+                        </span>
+                      </div>
+                      {prevEntry && (
+                        <span className="text-sm flex items-center gap-1" style={{ color: weightDiff > 0 ? "#ff4d6d" : weightDiff < 0 ? "#00ff88" : "#888" }}>
+                          {weightDiff > 0 ? <TrendingUp className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                          {Math.abs(weightDiff).toFixed(1)}kg
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+            </div>
+          )}
+        </Card>
         <Card padding="lg">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-mmrgb-warning/20 flex items-center justify-center">

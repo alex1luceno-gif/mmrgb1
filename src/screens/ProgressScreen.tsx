@@ -259,7 +259,7 @@ export const ProgressScreen: React.FC = () => {
           </div>
         </div>
       </header>
-      <div className="p-4 pb-28 space-y-4">
+      <div className="p-4 pb-32 space-y-4">
         {profile && targets && (
           <div className="grid grid-cols-2 gap-3">
             <Card padding="lg" className="text-center">
