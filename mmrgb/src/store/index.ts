@@ -1,4 +1,4 @@
-import { create } from "zustand"
+﻿import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { UserProfile, CalculatedTargets, FoodEntry, MealPreset, WorkoutRoutine, ActiveWorkout, BodyWeightEntry, SleepEntry, SorenessEntry, CreatineEntry, WaterEntry, DailyLog, Screen, ActivityLevel } from "../types"
 
@@ -149,7 +149,7 @@ export const useStore = create<AppState>()(
         const completedWorkout = { ...activeWorkout, completedAt: new Date() }
         set((state) => {
           const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
-          return { activeWorkout: null, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, workout: completedWorkout } }, currentScreen: "dashboard" }
+          return { activeWorkout: null, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, workout: completedWorkout } },  }
         })
       },
       cancelWorkout: () => set({ activeWorkout: null, currentScreen: "dashboard" }),
@@ -197,3 +197,8 @@ export const useStore = create<AppState>()(
     { name: "mmrgb-storage", partialize: (state) => ({ profile: state.profile, targets: state.targets, isOnboarded: state.isOnboarded, foodEntries: state.foodEntries, mealPresets: state.mealPresets, workoutRoutines: state.workoutRoutines, bodyWeightHistory: state.bodyWeightHistory, sleepHistory: state.sleepHistory, sorenessHistory: state.sorenessHistory, creatineHistory: state.creatineHistory, waterHistory: state.waterHistory, dailyLogs: state.dailyLogs }) }
   )
 )
+
+
+
+
+
