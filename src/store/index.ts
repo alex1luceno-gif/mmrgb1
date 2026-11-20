@@ -160,7 +160,7 @@ export const useStore = create<AppState>()(
         const completedWorkout = { ...activeWorkout, completedAt: new Date() }
         set((state) => {
           const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
-          return { activeWorkout: null, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, workouts: [...log.workouts, completedWorkout] } } }
+          return { activeWorkout: null, currentScreen: "dashboard", dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, workouts: [...log.workouts, completedWorkout] } } }
         })
       },
       cancelWorkout: () => set({ activeWorkout: null, currentScreen: "dashboard" }),

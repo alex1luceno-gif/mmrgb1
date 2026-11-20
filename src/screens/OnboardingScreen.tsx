@@ -9,9 +9,9 @@ export const OnboardingScreen: React.FC = () => {
   const { setProfile, completeOnboarding } = useStore()
   const [step, setStep] = useState(0)
   const [formData, setFormData] = useState({
-    height: 175,
-    weight: 75,
-    age: 25,
+    height: "",
+    weight: "",
+    age: "",
     gender: "male" as "male" | "female",
     activityLevel: "moderate" as "sedentary" | "light" | "moderate" | "very" | "extra",
     goal: "lean_bulk" as "lean_bulk" | "recomp" | "mini_cut"
@@ -39,14 +39,14 @@ export const OnboardingScreen: React.FC = () => {
 
   const handleNext = () => {
     if (step < 2) { setStep(step + 1) }
-    else { setProfile(formData); completeOnboarding() }
+    else { setProfile({ height: Number(formData.height), weight: Number(formData.weight), age: Number(formData.age), gender: formData.gender, activityLevel: formData.activityLevel, goal: formData.goal }); completeOnboarding() }
   }
 
   const handleBack = () => { if (step > 0) setStep(step - 1) }
 
   const isStepValid = () => {
     switch (step) {
-      case 0: return formData.height > 0 && formData.weight > 0 && formData.age > 0
+      case 0: return formData.height !== "" && formData.weight !== "" && formData.age !== ""
       case 1: return true
       case 2: return true
       default: return false
@@ -75,17 +75,17 @@ export const OnboardingScreen: React.FC = () => {
           <ArrowRight className="w-5 h-5 rotate-180" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-5 pb-24 animate-slide-up">
+      <div className="flex-1 overflow-y-auto p-5 pb-32 animate-slide-up">
         <div className="max-w-md mx-auto">
           <h1 className="text-3xl font-bold text-mmrgb-text mb-1">{steps[step].title}</h1>
           <p className="text-mmrgb-textMuted mb-8">{steps[step].subtitle}</p>
           {step === 0 && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Height (cm)" type="number" value={formData.height} onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })} min={100} max={250} placeholder="175" />
-                <Input label="Weight (kg)" type="number" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: Number(e.target.value) })} min={30} max={200} placeholder="75" />
+                <Input label="Height (cm)" type="number" value={formData.height} onChange={(e) => setFormData({ ...formData, height: e.target.value })} min={100} max={250} placeholder="175" />
+                <Input label="Weight (kg)" type="number" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: e.target.value })} min={30} max={200} placeholder="75" />
               </div>
-              <Input label="Age" type="number" value={formData.age} onChange={(e) => setFormData({ ...formData, age: Number(e.target.value) })} min={13} max={100} placeholder="25" />
+              <Input label="Age" type="number" value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} min={13} max={100} placeholder="25" />
               <div>
                 <label className="block text-sm font-medium text-mmrgb-textMuted mb-2">Gender</label>
                 <div className="grid grid-cols-2 gap-3">
