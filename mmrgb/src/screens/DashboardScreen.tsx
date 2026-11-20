@@ -5,14 +5,14 @@ import { Card } from "../components/Card"
 import { Button } from "../components/Button"
 import { Modal } from "../components/Modal"
 import { Slider } from "../components/Slider"
-import { Plus, Check, Moon, Zap, Brain, Settings, Flame, Target, TrendingUp, Droplet } from "lucide-react"
+import { Plus, Check, Moon, Zap, Brain, Settings, Flame, Target, TrendingUp, Droplet, Dumbbell } from "lucide-react"
 import { formatDateDisplay } from "../utils/calculations"
 
 export const DashboardScreen: React.FC = () => {
   const { 
     profile, targets, getTodaysCalories, getTodaysProtein, getTodaysWater, 
     isCreatineTakenToday, addCreatineEntry, addWaterEntry, addSleepEntry, 
-    addSorenessEntry, setScreen, addFoodEntry 
+    addSorenessEntry, setScreen, addFoodEntry, isWorkoutCompletedToday, getTodaysWorkout
   } = useStore()
   
   const [showSleepModal, setShowSleepModal] = useState(false)
@@ -26,6 +26,9 @@ export const DashboardScreen: React.FC = () => {
   const calorieProgress = targets ? Math.min(getTodaysCalories() / targets.calories, 1) : 0
   const proteinProgress = targets ? Math.min(getTodaysProtein() / targets.protein, 1) : 0
   const waterProgress = Math.min(getTodaysWater() / 3000, 1)
+
+  const todayWorkout = getTodaysWorkout()
+  const workoutCompleted = isWorkoutCompletedToday()
 
   // Quick add 25g protein (whey protein shake equivalent)
   const handleQuickAddProtein = () => {
@@ -83,6 +86,35 @@ export const DashboardScreen: React.FC = () => {
         </div>
       </header>
       <div className="p-4 pb-28 space-y-4">
+        {/* Workout Status Card */}
+        <Card padding="lg" className={workoutCompleted ? "border-2 border-mmrgb-primary/50 bg-mmrgb-primary/5" : ""}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-mmrgb-text flex items-center gap-2">
+              <Dumbbell className="w-5 h-5" style={{ color: workoutCompleted ? "#00ff88" : "#888" }} />
+              Today's Workout
+            </h2>
+            {workoutCompleted && (
+              <span className="flex items-center gap-1 px-3 py-1 bg-mmrgb-primary/20 text-mmrgb-primary rounded-full text-sm font-medium">
+                <Check className="w-4 h-4" /> Completed
+              </span>
+            )}
+          </div>
+          {workoutCompleted && todayWorkout ? (
+            <div className="space-y-2">
+              <p className="font-medium text-mmrgb-text">{todayWorkout.name}</p>
+              <p className="text-sm text-mmrgb-textMuted">
+                {todayWorkout.exercises.length} exercises \u2022 
+                {todayWorkout.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0)} sets completed
+              </p>
+              <p className="text-xs text-mmrgb-textMuted">
+                Finished at {todayWorkout.completedAt ? new Date(todayWorkout.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "today"}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-mmrgb-textMuted">No workout completed today. Tap a routine to start.</p>
+          )}
+        </Card>
+
         {/* Calorie & Protein Rings */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="relative overflow-hidden">

@@ -43,6 +43,8 @@ interface AppState {
   getTodaysProtein: () => number
   getTodaysWater: () => number
   isCreatineTakenToday: () => boolean
+  getTodaysWorkout: () => ActiveWorkout | null
+  isWorkoutCompletedToday: () => boolean
 }
 
 const calculateTargets = (profile: UserProfile): CalculatedTargets => {
@@ -188,7 +190,9 @@ export const useStore = create<AppState>()(
       getTodaysCalories: () => { const log = get().getDailyLog(todayKey()); return log.foodEntries.reduce((sum, e) => sum + e.calories, 0) },
       getTodaysProtein: () => { const log = get().getDailyLog(todayKey()); return log.foodEntries.reduce((sum, e) => sum + e.protein, 0) },
       getTodaysWater: () => { const log = get().getDailyLog(todayKey()); return log.water.reduce((sum, e) => sum + e.amount, 0) },
-      isCreatineTakenToday: () => { const log = get().getDailyLog(todayKey()); return log.creatine?.taken || false }
+      isCreatineTakenToday: () => { const log = get().getDailyLog(todayKey()); return log.creatine?.taken || false },
+      getTodaysWorkout: () => { const log = get().getDailyLog(todayKey()); return log.workout || null },
+      isWorkoutCompletedToday: () => { const log = get().getDailyLog(todayKey()); return !!log.workout?.completedAt }
     }),
     { name: "mmrgb-storage", partialize: (state) => ({ profile: state.profile, targets: state.targets, isOnboarded: state.isOnboarded, foodEntries: state.foodEntries, mealPresets: state.mealPresets, workoutRoutines: state.workoutRoutines, bodyWeightHistory: state.bodyWeightHistory, sleepHistory: state.sleepHistory, sorenessHistory: state.sorenessHistory, creatineHistory: state.creatineHistory, waterHistory: state.waterHistory, dailyLogs: state.dailyLogs }) }
   )
