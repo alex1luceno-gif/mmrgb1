@@ -5,7 +5,7 @@ import { Button } from "../components/Button"
 import { Input } from "../components/Input"
 import { Select } from "../components/Select"
 import { Modal } from "../components/Modal"
-import { Trash2, User, Download, Upload, AlertTriangle, Info, Scale, TrendingUp, Minus, Plus } from "lucide-react"
+import { Trash2, User, Download, Upload, AlertTriangle, Info, Scale, TrendingUp, Minus, Plus, X } from "lucide-react"
 import type { Gender, ActivityLevel, Goal } from "../types"
 
 const formatDate = (date: Date) => date.toISOString().split("T")[0]
@@ -175,17 +175,27 @@ export const SettingsScreen: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-3 mb-4">
-            <Input 
-              label="Weight (kg)" 
-              type="number" 
-              value={weightInput} 
-              onChange={e => setWeightInput(e.target.value)} 
-              placeholder={profile?.weight?.toString() || "75"}
-              min={30} 
-              max={200} 
-              step={0.1}
-              className="flex-1"
-            />
+            <div className="flex-1 relative">
+              <Input 
+                label="Weight (kg)" 
+                type="number" 
+                value={weightInput} 
+                onChange={e => setWeightInput(e.target.value)} 
+                placeholder="Enter weight"
+                min={30} 
+                max={200} 
+                step={0.1}
+              />
+              {weightInput && (
+                <button 
+                  onClick={() => setWeightInput("")}
+                  className="absolute right-3 top-[38px] p-1 text-mmrgb-textMuted hover:text-mmrgb-text"
+                  aria-label="Clear weight"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             <Button onClick={handleAddWeight} className="min-w-[100px]">
               <Plus className="w-4 h-4" /> Log
             </Button>
