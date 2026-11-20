@@ -22,7 +22,7 @@ const COMMON_EXERCISES = {
 
 export const WorkoutScreen: React.FC = () => {
   const { workoutRoutines, activeWorkout, addWorkoutRoutine, deleteWorkoutRoutine, updateWorkoutRoutine, startWorkout, updateExerciseSet, completeWorkout, cancelWorkout, dailyLogs, isRoutineCompletedToday } = useStore()
-  const [activeTab, setActiveTab] = useState<"routines" | "active" | "create">("routines")
+  const [activeTab, setActiveTab] = useState<"routines" | "create">("routines")
   const [showRoutineModal, setShowRoutineModal] = useState(false)
   const [editingRoutine, setEditingRoutine] = useState<typeof workoutRoutines[0] | null>(null)
   const [routineForm, setRoutineForm] = useState({
@@ -391,6 +391,15 @@ export const WorkoutScreen: React.FC = () => {
       <Modal isOpen={showRoutineModal} onClose={() => setShowRoutineModal(false)} title={editingRoutine ? "Edit Routine" : "Create Routine"} size="lg">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
           <Input label="Routine Name" value={routineForm.name} onChange={e => setRoutineForm({ ...routineForm, name: e.target.value })} placeholder="Push Day" />
+          {routineForm.exercises.length > 0 && (
+            <div className="mb-4 p-3 bg-mmrgb-surfaceElevated rounded-xl border border-mmrgb-border">
+              <p className="text-xs text-mmrgb-textMuted mb-1">Routine Summary</p>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="px-2 py-1 bg-mmrgb-primary/20 text-mmrgb-primary rounded-full">{routineForm.exercises.length} exercises</span>
+                <span className="px-2 py-1 bg-mmrgb-secondary/20 text-mmrgb-secondary rounded-full">{routineForm.exercises.reduce((sum, e) => sum + e.targetSets, 0)} total sets</span>
+              </div>
+            </div>
+          )}
           <Button onClick={addExerciseToRoutine} fullWidth variant="secondary" className="justify-start">
             <Plus className="w-4 h-4" /> Add Exercise
           </Button>
