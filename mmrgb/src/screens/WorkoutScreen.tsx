@@ -6,7 +6,7 @@ import { Modal } from "../components/Modal"
 import { Input } from "../components/Input"
 import { Tabs } from "../components/Tabs"
 import { Select } from "../components/Select"
-import { Plus, Trash2, Edit, Dumbbell, Timer, X, Check, PlusCircle, Calculator } from "lucide-react"
+import { Plus, Trash2, Edit, Dumbbell, Timer, X, Check, PlusCircle, Calculator, ClipboardList } from "lucide-react"
 import { clsx } from "clsx"
 import { formatDuration, getPlateMath, formatWeight, getMuscleGroupColor } from "../utils/calculations"
 
@@ -20,8 +20,43 @@ const COMMON_EXERCISES: Record<string, string[]> = {
   Core: ["Plank", "Hanging Leg Raises", "Cable Crunches", "Russian Twists", "Ab Wheel", "Dead Bugs"]
 }
 
+// Helper to render routine summary
+const RoutineSummary = ({ exercises }: { exercises: { name: string; muscleGroup: string; targetSets: number; targetReps: number; targetWeight: number; restTime: number }[] }) => {
+  if (exercises.length === 0) return null;
+  return (
+    <div className="mb-4 p-4 bg-mmrgb-surfaceElevated rounded-xl border border-mmrgb-border">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-mmrgb-text flex items-center gap-2">
+          <ClipboardList className="w-5 h-5 text-mmrgb-primary" />
+          Routine Summary ({exercises.length} exercises)
+        </h3>
+        <span className="text-xs text-mmrgb-textMuted">
+          ~{Math.round(exercises.reduce((sum, ex) => sum + ex.targetSets * ex.restTime, 0) / 60)} min estimated
+        </span>
+      </div>
+      <div className="space-y-2 max-h-60 overflow-y-auto">
+        {exercises.map((ex, idx) => (
+          <div key={idx} className="flex items-center gap-3 p-3 bg-mmrgb-bg rounded-lg border border-mmrgb-border">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-mmrgb-textMuted bg-mmrgb-border" style={{ background: getMuscleGroupColor(ex.muscleGroup) + "20", color: getMuscleGroupColor(ex.muscleGroup) }}>
+              {idx + 1}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-mmrgb-text truncate">{ex.name}</p>
+              <p className="text-xs text-mmrgb-textMuted">{ex.targetSets}x{ex.targetReps} @ {formatWeight(ex.targetWeight)} * {ex.restTime}s rest * {ex.muscleGroup}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 pt-3 border-t border-mmrgb-border flex items-center justify-between text-sm">
+        <span className="text-mmrgb-textMuted">Total Sets: {exercises.reduce((sum, ex) => sum + ex.targetSets, 0)}</span>
+        <span className="text-mmrgb-textMuted">Total Volume: ~{exercises.reduce((sum, ex) => sum + ex.targetSets * ex.targetReps * ex.targetWeight, 0).toLocaleString()} kg</span>
+      </div>
+    </div>
+  );
+};
+
 export const WorkoutScreen: React.FC = () => {
-  const { workoutRoutines, activeWorkout, addWorkoutRoutine, deleteWorkoutRoutine, updateWorkoutRoutine, startWorkout, updateExerciseSet, completeWorkout, cancelWorkout, dailyLogs, getTodaysWorkout } = useStore()
+  const { workoutRoutines, activeWorkout, addWorkoutRoutine, deleteWorkoutRoutine, updateWorkoutRoutine, startWorkout, updateExerciseSet, completeWorkout, cancelWorkout, dailyLogs, isRoutineCompletedToday } = useStore()
   const [activeTab, setActiveTab] = useState<"routines" | "active" | "create">("routines")
   const [showRoutineModal, setShowRoutineModal] = useState(false)
   const [editingRoutine, setEditingRoutine] = useState<typeof workoutRoutines[0] | null>(null)
@@ -121,10 +156,12 @@ export const WorkoutScreen: React.FC = () => {
   }
 
   const getPreviousSession = (exerciseName: string) => {
-    const logs = Object.values(dailyLogs).filter(log => log.workout)
+    const logs = Object.values(dailyLogs).filter(log => log.workouts && log.workouts.length > 0)
     for (const log of logs.reverse()) {
-      const ex = log.workout?.exercises.find(e => e.name === exerciseName)
-      if (ex) return ex.sets
+      for (const workout of log.workouts) {
+        const ex = workout.exercises.find(e => e.name === exerciseName)
+        if (ex) return ex.sets
+      }
     }
     return null
   }
@@ -159,12 +196,6 @@ export const WorkoutScreen: React.FC = () => {
 
   const handleRPEChange = (exerciseId: string, setIndex: number, rpe: number) => {
     updateExerciseSet(exerciseId, setIndex, { rpe })
-  }
-
-  // Check if a specific routine was completed today
-  const isRoutineCompletedToday = (routineId: string) => {
-    const todayWorkout = getTodaysWorkout()
-    return todayWorkout?.routineId === routineId && !!todayWorkout.completedAt
   }
 
   if (activeWorkout) {
@@ -212,7 +243,7 @@ export const WorkoutScreen: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {previousSets.map((s, i) => (
                         <span key={i} className="px-2 py-1 bg-mmrgb-border rounded text-xs text-mmrgb-textMuted">
-                          {s.reps}×{formatWeight(s.weight)}
+                          {s.reps}x{formatWeight(s.weight)}
                         </span>
                       ))}
                     </div>
@@ -220,14 +251,14 @@ export const WorkoutScreen: React.FC = () => {
                 )}
                 <div className="space-y-2">
                   {exercise.sets.map((set, setIdx) => (
-                    <div key={setIdx} className={clsx(
+                    <div key={exercise.id + "-" + setIdx} className={clsx(
                       "flex items-center gap-3 p-3 rounded-xl transition-colors",
                       set.completed ? "bg-mmrgb-primary/10 border border-mmrgb-primary/30" : "bg-mmrgb-surfaceElevated border border-mmrgb-border"
                     )}>
                       <div className="w-8 text-center text-sm font-medium text-mmrgb-textMuted">{setIdx + 1}</div>
                       <div className="flex-1 flex items-center gap-2">
                         <Input type="number" value={set.reps} onChange={e => handleRepsChange(exercise.id, setIdx, Number(e.target.value))} className="w-20 py-2 text-center" min={1} max={100} />
-                        <span className="text-mmrgb-textMuted">•</span>
+                        <span className="text-mmrgb-textMuted">*</span>
                         <Input type="number" value={set.weight} onChange={e => handleWeightChange(exercise.id, setIdx, Number(e.target.value))} className="w-24 py-2 text-center" min={0} max={500} step={0.5} />
                         <span className="text-sm text-mmrgb-textMuted">kg</span>
                       </div>
@@ -273,7 +304,7 @@ export const WorkoutScreen: React.FC = () => {
                             <div className="w-16 h-16 rounded-full border-4 flex items-center justify-center" style={{ borderColor: "rgba(0, 255, 136, " + (0.3 + Number(plate) / 100) + ")" }}>
                               <span className="text-sm font-bold text-mmrgb-text">{plate}kg</span>
                             </div>
-                            <span className="text-lg font-bold text-mmrgb-text align-middle">•{count} per side</span>
+                            <span className="text-lg font-bold text-mmrgb-text align-middle">x{count} per side</span>
                           </div>
                         ))}
                       </div>
@@ -298,6 +329,7 @@ export const WorkoutScreen: React.FC = () => {
           </Button>
         </div>
         <Tabs tabs={[
+
           { id: "routines", label: "Routines", icon: <Dumbbell className="w-4 h-4" />, count: workoutRoutines.length },
           { id: "create", label: "Create", icon: <PlusCircle className="w-4 h-4" /> }
         ]} activeTab={activeTab} onChange={(id: string) => setActiveTab(id as "routines" | "active" | "create")} variant="pills" className="px-4 pb-4" />
@@ -357,13 +389,17 @@ export const WorkoutScreen: React.FC = () => {
           <>
             <Card padding="lg">
               <h2 className="text-lg font-bold text-mmrgb-text mb-4">Build Your Routine</h2>
+              
+              {/* Exercise Summary */}
+              <RoutineSummary exercises={routineForm.exercises} />
+
               <div className="space-y-3 mb-4">
                 {routineForm.exercises.map((ex, idx) => (
                   <div key={idx} className="flex items-center gap-3 p-3 bg-mmrgb-surfaceElevated rounded-xl">
                     <div className="w-8 text-center text-sm font-medium text-mmrgb-textMuted">{idx + 1}</div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-mmrgb-text truncate">{ex.name}</p>
-                      <p className="text-xs text-mmrgb-textMuted">{ex.targetSets}×{ex.targetReps} @ {formatWeight(ex.targetWeight)} × {ex.restTime}s rest</p>
+                      <p className="text-xs text-mmrgb-textMuted">{ex.targetSets}x{ex.targetReps} @ {formatWeight(ex.targetWeight)} x {ex.restTime}s rest</p>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => editExerciseInRoutine(idx)}>
                       <Edit className="w-4 h-4" />
@@ -390,6 +426,10 @@ export const WorkoutScreen: React.FC = () => {
       <Modal isOpen={showRoutineModal} onClose={() => setShowRoutineModal(false)} title={editingRoutine ? "Edit Routine" : "Create Routine"} size="lg">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
           <Input label="Routine Name" value={routineForm.name} onChange={e => setRoutineForm({ ...routineForm, name: e.target.value })} placeholder="Push Day" />
+          
+          {/* Exercise Summary in Modal */}
+          <RoutineSummary exercises={routineForm.exercises} />
+          
           <Button onClick={addExerciseToRoutine} fullWidth variant="secondary" className="justify-start">
             <Plus className="w-4 h-4" /> Add Exercise
           </Button>

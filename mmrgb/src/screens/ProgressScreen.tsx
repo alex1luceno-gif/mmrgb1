@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react"
+import React, { useState, useMemo } from "react"
 import { useStore } from "../store"
 import { Card } from "../components/Card"
 import { Tabs } from "../components/Tabs"
@@ -69,48 +69,111 @@ const chartOptions = {
   interaction: { intersect: false, mode: "index" as const }
 }
 
+// Safe date parsing - handles Date objects, ISO strings, timestamps, and invalid values
+const safeToDate = (value: Date | string | number | null | undefined): Date => {
+  if (value instanceof Date) return isNaN(value.getTime()) ? new Date() : value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
+};
+
+// Safe number conversion - returns 0 for NaN, empty, null, undefined
+const toNum = (value: string | number | null | undefined): number => {
+  if (value === '' || value === null || value === undefined) return 0;
+  const n = Number(value);
+  return isNaN(n) ? 0 : n;
+};
+
+// Type definitions for chart data
+interface WeightDataPoint {
+  date: string
+  weight: number
+  rawDate: Date
+}
+
+interface StrengthDataPoint {
+  date: string
+  exercise: string
+  weight: number
+  reps: number
+  oneRM: number
+  muscleGroup: string
+  rawDate: Date
+}
+
+interface VolumeDataPoint {
+  date: string
+  muscleGroup: string
+  volume: number
+  rawDate: Date
+}
+
+interface RecoveryDataPoint {
+  group: string
+  daysSince: number
+  recovered: boolean
+  color: string
+}
+
 export const ProgressScreen: React.FC = () => {
   const { bodyWeightHistory, dailyLogs, targets, profile } = useStore()
   const [timeRange, setTimeRange] = useState<"week" | "month" | "3month" | "year" | "all">("month")
 
-  const weightData = useMemo(() => bodyWeightHistory.map((entry) => ({
-    date: formatDateDisplay(entry.date),
-    weight: entry.weight,
-    rawDate: entry.date
+  const weightData = useMemo((): WeightDataPoint[] => bodyWeightHistory.map((entry) => ({
+    date: formatDateDisplay(safeToDate(entry.date)),
+    weight: toNum(entry.weight),
+    rawDate: safeToDate(entry.date)
   })).slice(-30), [bodyWeightHistory])
 
-  const strengthData = useMemo(() => Object.values(dailyLogs)
-    .filter(log => log.workout)
-    .flatMap(log => log.workout!.exercises.flatMap(ex => ex.sets.filter(s => s.completed).map(s => ({
-      date: formatDateDisplay(log.workout!.startedAt),
-      exercise: ex.name,
-      weight: s.weight,
-      reps: s.reps,
-      oneRM: calculate1RM(s.weight, s.reps),
-      muscleGroup: ex.muscleGroup,
-      rawDate: log.workout!.startedAt
-    }))))
-    .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime()), [dailyLogs])
+  const strengthData = useMemo((): StrengthDataPoint[] => {
+    const result: StrengthDataPoint[] = []
+    Object.values(dailyLogs).filter(log => log.workouts && log.workouts.length > 0).forEach(log => {
+      log.workouts.forEach(workout => {
+        const startedAt = safeToDate(workout.startedAt)
+        workout.exercises.forEach(ex => {
+          ex.sets.filter(s => s.completed).forEach(s => {
+            result.push({
+              date: formatDateDisplay(startedAt),
+              exercise: ex.name,
+              weight: toNum(s.weight),
+              reps: toNum(s.reps),
+              oneRM: calculate1RM(toNum(s.weight), toNum(s.reps)),
+              muscleGroup: ex.muscleGroup,
+              rawDate: startedAt
+            })
+          })
+        })
+      })
+    })
+    return result.sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
+  }, [dailyLogs])
 
-  const volumeData = useMemo(() => Object.values(dailyLogs)
-    .filter(log => log.workout)
-    .flatMap(log => log.workout!.exercises.map(ex => ({
-      date: formatDate(log.workout!.startedAt),
-      muscleGroup: ex.muscleGroup,
-      volume: ex.sets.filter(s => s.completed).reduce((sum, s) => sum + s.weight * s.reps, 0),
-      rawDate: log.workout!.startedAt
-    })))
-    .reduce((acc, curr) => {
-      const existing = acc.find(d => d.date === curr.date && d.muscleGroup === curr.muscleGroup)
-      if (existing) existing.volume += curr.volume
-      else acc.push({ ...curr })
-      return acc
-    }, [] as { date: string; muscleGroup: string; volume: number; rawDate: Date }[])
-    .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime()), [dailyLogs])
+  const volumeData = useMemo((): VolumeDataPoint[] => {
+    const map = new Map<string, VolumeDataPoint>()
+    Object.values(dailyLogs).filter(log => log.workouts && log.workouts.length > 0).forEach(log => {
+      log.workouts.forEach(workout => {
+        const startedAt = safeToDate(workout.startedAt)
+        const dateStr = formatDate(startedAt)
+        workout.exercises.forEach(ex => {
+          const volume = ex.sets.filter(s => s.completed).reduce((sum: number, s) => sum + toNum(s.weight) * toNum(s.reps), 0)
+          const key = dateStr + "|" + ex.muscleGroup
+          const existing = map.get(key)
+          if (existing) {
+            existing.volume += volume
+          } else {
+            map.set(key, { date: dateStr, muscleGroup: ex.muscleGroup, volume, rawDate: startedAt })
+          }
+        })
+      })
+    })
+    return Array.from(map.values()).sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
+  }, [dailyLogs])
 
   const muscleGroups = useMemo(() => [...new Set(strengthData.map(d => d.muscleGroup))], [strengthData])
 
-  const recoveryData = useMemo(() => muscleGroups.map((group) => {
+  const recoveryData = useMemo((): RecoveryDataPoint[] => muscleGroups.map((group) => {
     const lastWorkout = strengthData.filter(d => d.muscleGroup === group).pop()
     if (!lastWorkout) return { group, daysSince: 99, recovered: true, color: getMuscleGroupColor(group) }
     const daysSince = Math.floor((Date.now() - lastWorkout.rawDate.getTime()) / (1000 * 60 * 60 * 24))
@@ -204,7 +267,7 @@ export const ProgressScreen: React.FC = () => {
                 <Target className="w-6 h-6 text-mmrgb-primary" />
                 <span className="text-sm font-medium text-mmrgb-textMuted">Current Weight</span>
               </div>
-              <p className="text-4xl font-bold text-mmrgb-text">{bodyWeightHistory[bodyWeightHistory.length - 1]?.weight || profile.weight}kg</p>
+              <p className="text-4xl font-bold text-mmrgb-text">{toNum(bodyWeightHistory[bodyWeightHistory.length - 1]?.weight) || toNum(profile.weight)}kg</p>
               <p className="text-sm text-mmrgb-textMuted mt-1">BMI: {targets.bmi}</p>
             </Card>
             <Card padding="lg" className="text-center">
@@ -212,7 +275,7 @@ export const ProgressScreen: React.FC = () => {
                 <Dumbbell className="w-6 h-6 text-mmrgb-secondary" />
                 <span className="text-sm font-medium text-mmrgb-textMuted">Total Workouts</span>
               </div>
-              <p className="text-4xl font-bold text-mmrgb-text">{Object.values(dailyLogs).filter(l => l.workout).length}</p>
+              <p className="text-4xl font-bold text-mmrgb-text">{Object.values(dailyLogs).filter(l => l.workouts && l.workouts.length > 0).length}</p>
             </Card>
           </div>
         )}

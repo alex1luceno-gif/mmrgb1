@@ -1,4 +1,4 @@
-﻿import { create } from "zustand"
+import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { UserProfile, CalculatedTargets, FoodEntry, MealPreset, WorkoutRoutine, ActiveWorkout, BodyWeightEntry, SleepEntry, SorenessEntry, CreatineEntry, WaterEntry, DailyLog, Screen, ActivityLevel } from "../types"
 
@@ -43,9 +43,20 @@ interface AppState {
   getTodaysProtein: () => number
   getTodaysWater: () => number
   isCreatineTakenToday: () => boolean
-  getTodaysWorkout: () => ActiveWorkout | null
+  getTodaysWorkouts: () => ActiveWorkout[]
   isWorkoutCompletedToday: () => boolean
+  isRoutineCompletedToday: (routineId: string) => boolean
 }
+
+// Safe date parsing - handles Date objects, ISO strings, timestamps, and invalid values
+const safeToDate = (value: Date | string | number | null | undefined): Date => {
+  if (value instanceof Date) return isNaN(value.getTime()) ? new Date() : value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
+};
 
 const calculateTargets = (profile: UserProfile): CalculatedTargets => {
   const { height, weight, age, gender, activityLevel, goal } = profile
@@ -102,7 +113,7 @@ export const useStore = create<AppState>()(
         const dateKey = todayKey()
         set((state) => {
           const newEntries = [...state.foodEntries, entry]
-          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
+          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
           return { foodEntries: newEntries, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, foodEntries: [...log.foodEntries, entry] } } }
         })
       },
@@ -134,7 +145,7 @@ export const useStore = create<AppState>()(
           ...ex,
           id: ex.id,
           sets: Array.from({ length: ex.targetSets }, () => ({ reps: ex.targetReps, weight: ex.targetWeight, completed: false })),
-          previousSession: get().dailyLogs[Object.keys(get().dailyLogs).find((k) => get().dailyLogs[k].workout?.exercises.some((e) => e.name === ex.name)) || ""]?.workout?.exercises.filter((e) => e.name === ex.name).map((e) => ({ sets: e.sets.length, reps: e.sets[0]?.reps || 0, weight: e.sets[0]?.weight || 0 })) || []
+          previousSession: get().dailyLogs[Object.keys(get().dailyLogs).find((k) => get().dailyLogs[k].workouts?.some((e) => e.name === ex.name)) || ""]?.workouts?.find((w) => w.exercises.some((e) => e.name === ex.name))?.exercises.filter((e) => e.name === ex.name).map((e) => ({ sets: e.sets.length, reps: e.sets[0]?.reps || 0, weight: e.sets[0]?.weight || 0 })) || []
         }))
         set({ activeWorkout: { routineId, name: routine.name, exercises, startedAt: new Date() }, currentScreen: "workout" })
       },
@@ -148,8 +159,8 @@ export const useStore = create<AppState>()(
         const dateKey = todayKey()
         const completedWorkout = { ...activeWorkout, completedAt: new Date() }
         set((state) => {
-          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
-          return { activeWorkout: null, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, workout: completedWorkout } },  }
+          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
+          return { activeWorkout: null, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, workouts: [...log.workouts, completedWorkout] } } }
         })
       },
       cancelWorkout: () => set({ activeWorkout: null, currentScreen: "dashboard" }),
@@ -158,7 +169,7 @@ export const useStore = create<AppState>()(
         const dateKey = todayKey()
         set((state) => {
           const newHistory = [...state.sleepHistory, entry].sort((a, b) => a.date.getTime() - b.date.getTime())
-          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
+          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
           return { sleepHistory: newHistory, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, sleep: entry } } }
         })
       },
@@ -166,7 +177,7 @@ export const useStore = create<AppState>()(
         const dateKey = todayKey()
         set((state) => {
           const newHistory = [...state.sorenessHistory, entry].sort((a, b) => a.date.getTime() - b.date.getTime())
-          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
+          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
           return { sorenessHistory: newHistory, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, soreness: [...log.soreness, entry] } } }
         })
       },
@@ -174,7 +185,7 @@ export const useStore = create<AppState>()(
         const dateKey = todayKey()
         set((state) => {
           const newHistory = [...state.creatineHistory, entry].sort((a, b) => a.date.getTime() - b.date.getTime())
-          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
+          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
           return { creatineHistory: newHistory, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, creatine: entry } } }
         })
       },
@@ -182,23 +193,88 @@ export const useStore = create<AppState>()(
         const dateKey = todayKey()
         set((state) => {
           const newHistory = [...state.waterHistory, entry].sort((a, b) => a.date.getTime() - b.date.getTime())
-          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], soreness: [], water: [] }
+          const log = state.dailyLogs[dateKey] || { date: dateKey, foodEntries: [], workouts: [], soreness: [], water: [] }
           return { waterHistory: newHistory, dailyLogs: { ...state.dailyLogs, [dateKey]: { ...log, water: [...log.water, entry] } } }
         })
       },
-      getDailyLog: (date) => get().dailyLogs[date] || { date, foodEntries: [], soreness: [], water: [] },
+      getDailyLog: (date) => get().dailyLogs[date] || { date, foodEntries: [], workouts: [], soreness: [], water: [] },
       getTodaysCalories: () => { const log = get().getDailyLog(todayKey()); return log.foodEntries.reduce((sum, e) => sum + e.calories, 0) },
       getTodaysProtein: () => { const log = get().getDailyLog(todayKey()); return log.foodEntries.reduce((sum, e) => sum + e.protein, 0) },
       getTodaysWater: () => { const log = get().getDailyLog(todayKey()); return log.water.reduce((sum, e) => sum + e.amount, 0) },
       isCreatineTakenToday: () => { const log = get().getDailyLog(todayKey()); return log.creatine?.taken || false },
-      getTodaysWorkout: () => { const log = get().getDailyLog(todayKey()); return log.workout || null },
-      isWorkoutCompletedToday: () => { const log = get().getDailyLog(todayKey()); return !!log.workout?.completedAt }
+      getTodaysWorkouts: () => { const log = get().getDailyLog(todayKey()); return log.workouts || [] },
+      isWorkoutCompletedToday: () => { const log = get().getDailyLog(todayKey()); return log.workouts.length > 0 },
+      isRoutineCompletedToday: (routineId: string) => {
+        const log = get().getDailyLog(todayKey());
+        const routineWorkout = log.workouts.find(w => w.routineId === routineId && w.completedAt);
+        if (!routineWorkout) return false;
+        // Check if ALL exercises have ALL sets completed
+        return routineWorkout.exercises.every(ex => ex.sets.every(set => set.completed));
+      }
     }),
-    { name: "mmrgb-storage", partialize: (state) => ({ profile: state.profile, targets: state.targets, isOnboarded: state.isOnboarded, foodEntries: state.foodEntries, mealPresets: state.mealPresets, workoutRoutines: state.workoutRoutines, bodyWeightHistory: state.bodyWeightHistory, sleepHistory: state.sleepHistory, sorenessHistory: state.sorenessHistory, creatineHistory: state.creatineHistory, waterHistory: state.waterHistory, dailyLogs: state.dailyLogs }) }
+    { 
+      name: "mmrgb-storage", 
+      partialize: (state) => ({ profile: state.profile, targets: state.targets, isOnboarded: state.isOnboarded, foodEntries: state.foodEntries, mealPresets: state.mealPresets, workoutRoutines: state.workoutRoutines, bodyWeightHistory: state.bodyWeightHistory, sleepHistory: state.sleepHistory, sorenessHistory: state.sorenessHistory, creatineHistory: state.creatineHistory, waterHistory: state.waterHistory, dailyLogs: state.dailyLogs }),
+      // Revive dates from persisted storage
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Revive dates in foodEntries
+          state.foodEntries = state.foodEntries.map((e: any) => ({ ...e, timestamp: safeToDate(e.timestamp) }));
+          
+          // Revive dates in mealPresets
+          state.mealPresets = state.mealPresets.map((p: any) => ({ 
+            ...p, 
+            entries: p.entries.map((e: any) => ({ ...e, timestamp: safeToDate(e.timestamp) }))
+          }));
+          
+          // Revive dates in workoutRoutines
+          state.workoutRoutines = state.workoutRoutines.map((r: any) => ({ 
+            ...r, 
+            createdAt: safeToDate(r.createdAt),
+            exercises: r.exercises.map((e: any) => ({ ...e }))
+          }));
+          
+          // Revive dates in bodyWeightHistory
+          state.bodyWeightHistory = state.bodyWeightHistory.map((e: any) => ({ ...e, date: safeToDate(e.date) }));
+          
+          // Revive dates in sleepHistory
+          state.sleepHistory = state.sleepHistory.map((e: any) => ({ ...e, date: safeToDate(e.date) }));
+          
+          // Revive dates in sorenessHistory
+          state.sorenessHistory = state.sorenessHistory.map((e: any) => ({ ...e, date: safeToDate(e.date) }));
+          
+          // Revive dates in creatineHistory
+          state.creatineHistory = state.creatineHistory.map((e: any) => ({ ...e, date: safeToDate(e.date) }));
+          
+          // Revive dates in waterHistory
+          state.waterHistory = state.waterHistory.map((e: any) => ({ ...e, date: safeToDate(e.date) }));
+          
+          // Revive dates in dailyLogs
+          Object.keys(state.dailyLogs).forEach(key => {
+            const log = state.dailyLogs[key];
+            if (log) {
+              state.dailyLogs[key] = {
+                ...log,
+                foodEntries: log.foodEntries.map((e: any) => ({ ...e, timestamp: safeToDate(e.timestamp) })),
+                workouts: log.workouts.map((w: any) => ({
+                  ...w,
+                  startedAt: safeToDate(w.startedAt),
+                  completedAt: w.completedAt ? safeToDate(w.completedAt) : undefined,
+                  exercises: w.exercises.map((ex: any) => ({
+                    ...ex,
+                    sets: ex.sets.map((s: any) => ({ ...s }))
+                  }))
+                })),
+                bodyWeight: log.bodyWeight ? { ...log.bodyWeight, date: safeToDate(log.bodyWeight.date) } : undefined,
+                sleep: log.sleep ? { ...log.sleep, date: safeToDate(log.sleep.date) } : undefined,
+                soreness: log.soreness.map((e: any) => ({ ...e, date: safeToDate(e.date) })),
+                creatine: log.creatine ? { ...log.creatine, date: safeToDate(log.creatine.date) } : undefined,
+                water: log.water.map((e: any) => ({ ...e, date: safeToDate(e.date) }))
+              };
+            }
+          });
+        }
+      }
+    }
   )
 )
-
-
-
-
-

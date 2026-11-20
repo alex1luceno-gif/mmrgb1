@@ -12,7 +12,7 @@ export const DashboardScreen: React.FC = () => {
   const { 
     profile, targets, getTodaysCalories, getTodaysProtein, getTodaysWater, 
     isCreatineTakenToday, addCreatineEntry, addWaterEntry, addSleepEntry, 
-    addSorenessEntry, setScreen, addFoodEntry, isWorkoutCompletedToday, getTodaysWorkout
+    addSorenessEntry, setScreen, addFoodEntry, getTodaysWorkouts
   } = useStore()
   
   const [showSleepModal, setShowSleepModal] = useState(false)
@@ -27,8 +27,8 @@ export const DashboardScreen: React.FC = () => {
   const proteinProgress = targets ? Math.min(getTodaysProtein() / targets.protein, 1) : 0
   const waterProgress = Math.min(getTodaysWater() / 3000, 1)
 
-  const todayWorkout = getTodaysWorkout()
-  const workoutCompleted = isWorkoutCompletedToday()
+  const todaysWorkouts = getTodaysWorkouts()
+  const workoutCompleted = todaysWorkouts.length > 0
 
   // Quick add 25g protein (whey protein shake equivalent)
   const handleQuickAddProtein = () => {
@@ -91,7 +91,7 @@ export const DashboardScreen: React.FC = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-mmrgb-text flex items-center gap-2">
               <Dumbbell className="w-5 h-5" style={{ color: workoutCompleted ? "#00ff88" : "#888" }} />
-              Today's Workout
+              Today&apos;s Workout
             </h2>
             {workoutCompleted && (
               <span className="flex items-center gap-1 px-3 py-1 bg-mmrgb-primary/20 text-mmrgb-primary rounded-full text-sm font-medium">
@@ -99,16 +99,20 @@ export const DashboardScreen: React.FC = () => {
               </span>
             )}
           </div>
-          {workoutCompleted && todayWorkout ? (
+          {workoutCompleted && todaysWorkouts.length > 0 ? (
             <div className="space-y-2">
-              <p className="font-medium text-mmrgb-text">{todayWorkout.name}</p>
-              <p className="text-sm text-mmrgb-textMuted">
-                {todayWorkout.exercises.length} exercises \u2022 
-                {todayWorkout.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0)} sets completed
-              </p>
-              <p className="text-xs text-mmrgb-textMuted">
-                Finished at {todayWorkout.completedAt ? new Date(todayWorkout.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "today"}
-              </p>
+              {todaysWorkouts.map((workout, idx) => (
+                <div key={idx} className="p-3 bg-mmrgb-surfaceElevated rounded-xl border border-mmrgb-border">
+                  <p className="font-medium text-mmrgb-text">{workout.name}</p>
+                  <p className="text-sm text-mmrgb-textMuted">
+                    {workout.exercises.length} exercises \u2022 
+                    {workout.exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completed).length, 0)} sets completed
+                  </p>
+                  <p className="text-xs text-mmrgb-textMuted">
+                    Finished at {workout.completedAt ? new Date(workout.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "today"}
+                  </p>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="text-sm text-mmrgb-textMuted">No workout completed today. Tap a routine to start.</p>
