@@ -1,0 +1,1 @@
+const fs = require(" fs\); let content = fs.readFileSync(\C:/Users/Lenovo/Downloads/Documents/hobbyvcode/mmrgb/src/store/index.ts\, \utf8\); content = content.replace(\currentScreen: \\\dashboard\\\\, \\); fs.writeFileSync(\C:/Users/Lenovo/Downloads/Documents/hobbyvcode/mmrgb/src/store/index.ts\, content, \utf8\); console.log(\Fixed\);
