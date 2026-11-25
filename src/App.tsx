@@ -44,10 +44,15 @@ function AppContent() {
         <Route path="/settings" element={<SettingsScreen />} />
         <Route path="/" element={<DashboardScreen />} />
       </Routes>
-      <nav className="fixed bottom-0 left-0 right-0 bg-mmrgb-bg/95 backdrop-blur-xl border-t border-mmrgb-border z-50">
-        <div className="flex items-center justify-around h-16">
+      {/* Bottom Navigation - with safe area support */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-mmrgb-bg/95 backdrop-blur-xl border-t border-mmrgb-border z-50 safe-bottom">
+        <div className="flex items-center justify-around h-16 min-h-[4.5rem] pb-safe">
           {NAV_ITEMS.map(item => (
-            <button key={item.id} onClick={() => { navigate("/" + item.id); setScreen(item.id as any); }} className={clsx("flex flex-col items-center gap-1 px-4 py-2 transition-all", currentScreen === item.id ? "text-mmrgb-primary" : "text-mmrgb-textMuted")}>
+            <button 
+              key={item.id} 
+              onClick={() => navigate("/" + item.id)}
+              className={clsx("flex flex-col items-center gap-1 px-4 py-2 transition-all min-h-[44px] min-w-[44px]", currentScreen === item.id ? "text-mmrgb-primary" : "text-mmrgb-textMuted")}
+            >
               <item.icon className={clsx("w-6 h-6", currentScreen === item.id && "text-mmrgb-primary")} />
               <span className="text-xs font-medium">{item.label}</span>
             </button>
