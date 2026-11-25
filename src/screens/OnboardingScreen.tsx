@@ -75,7 +75,7 @@ export const OnboardingScreen: React.FC = () => {
           <ArrowRight className="w-5 h-5 rotate-180" />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-5 pb-32 animate-slide-up">
+      <div className="flex-1 overflow-y-auto p-5 pb-40 animate-slide-up">
         <div className="max-w-md mx-auto">
           <h1 className="text-3xl font-bold text-mmrgb-text mb-1">{steps[step].title}</h1>
           <p className="text-mmrgb-textMuted mb-8">{steps[step].subtitle}</p>

@@ -96,7 +96,7 @@ export const DashboardScreen: React.FC = () => {
           </button>
         </div>
       </header>
-      <div className="p-4 pb-32 space-y-4">
+      <div className="p-4 pb-40 space-y-4">
         {/* Workout Status Card */}
         <Card padding="lg" className={workoutCompleted ? "border-2 border-mmrgb-primary/50 bg-mmrgb-primary/5" : ""}>
           <div className="flex items-center justify-between mb-3">

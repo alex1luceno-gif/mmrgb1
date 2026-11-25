@@ -93,7 +93,7 @@ export const SettingsScreen: React.FC = () => {
           <h1 className="text-2xl font-bold text-mmrgb-text">Settings</h1>
         </div>
       </header>
-      <div className="p-4 pb-32 space-y-4">
+      <div className="p-4 pb-40 space-y-4">
         {profile && (
           <Card padding="lg">
             <div className="flex items-center gap-3 mb-4">

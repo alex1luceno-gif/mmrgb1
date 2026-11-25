@@ -157,7 +157,7 @@ export const NutritionScreen: React.FC = () => {
           { id: "presets", label: "Presets", icon: <BookOpen className="w-4 h-4" />, count: mealPresets.length }
         ]} activeTab={activeTab} onChange={(id: string) => setActiveTab(id as "log" | "presets")} variant="pills" className="px-4 pb-4" />
       </header>
-      <div className="p-4 pb-32 space-y-4">
+      <div className="p-4 pb-40 space-y-4">
         {activeTab === "log" && (
           <>
             <Card padding="lg">

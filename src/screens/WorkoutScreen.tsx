@@ -185,7 +185,7 @@ export const WorkoutScreen: React.FC = () => {
             })()}
           </div>
         </header>
-        <div className="p-4 pb-32 space-y-4">
+        <div className="p-4 pb-40 space-y-4">
           {activeWorkout.exercises.map((exercise) => {
             const previousSets = getPreviousSession(exercise.name)
             const color = getMuscleGroupColor(exercise.muscleGroup)
@@ -301,7 +301,7 @@ export const WorkoutScreen: React.FC = () => {
           { id: "create", label: "Create", icon: <PlusCircle className="w-4 h-4" /> }
         ]} activeTab={activeTab} onChange={(id: string) => setActiveTab(id as "routines" | "create")} variant="pills" className="px-4 pb-4" />
       </header>
-      <div className="p-4 pb-32 space-y-4">
+      <div className="p-4 pb-40 space-y-4">
         {activeTab === "routines" && (
           workoutRoutines.length === 0 ? (
             <Card padding="lg" className="text-center">
