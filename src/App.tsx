@@ -36,7 +36,7 @@ function AppContent() {
   }
   return (
     <>
-      <main className="flex-1 overflow-y-auto pb-32">
+      <main className="flex-1 overflow-y-auto pb-40 pb-safe">
         <Routes>
         <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="/nutrition" element={<NutritionScreen />} />
@@ -67,7 +67,7 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-mmrgb-bg flex flex-col">
+      <div className="min-h-dvh bg-mmrgb-bg flex flex-col">
         <AppContent />
       </div>
     </BrowserRouter>

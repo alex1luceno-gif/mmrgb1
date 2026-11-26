@@ -1,11 +1,37 @@
 # MMRGB Changelog
 
+## [1.1.1] - 2026-11-26
+
+### Fixed
+- **UI Layout Issue: Bottom Navigation Overlap - Permanent Fix**
+  - Increased bottom padding on scrollable content container from pb-32 (128px) to pb-40 (160px) + pb-safe (safe-area-inset-bottom)
+  - Changed outer app shell from min-h-screen (100vh) to min-h-dvh (100dvh) to prevent mobile browser address bars from cutting off scroll area
+  - Added explicit pb-safe utility to main scrollable container for home indicator clearance on iOS/Android
+  - The scrollable <main> element now has overflow-y-auto with sufficient bottom padding (160px + safe area) so users can scroll past the final card with clear breathing room above the bottom nav bar
+
+### Modified Files
+- src/App.tsx - Updated root to min-h-dvh, main container to pb-40 pb-safe
+
+### Technical Details
+- **Scroll owner**: The <main className=" flex-1 overflow-y-auto pb-40 pb-safe\> element owns the vertical scroll
+- **Outer shell**: min-h-dvh uses dynamic viewport height (100dvh) instead of static (100vh)
+- **Bottom nav height**: ~72px (h-16 + min-h-[4.5rem]) + safe area inset
+- **Content padding**: 160px (pb-40) + env(safe-area-inset-bottom) ensures last card clears bottom nav completely
+- This works on all pages (Dashboard, Nutrition, Workout, Progress, Settings, Onboarding)
+
+### Build
+- Verified successful TypeScript compilation ( sc -b)
+- Verified successful Vite production build (ite build)
+- Output: ~545kB JS bundle, ~41kB CSS
+
+---
+
 ## [1.1.0] - 2026-11-25
 
 ### Fixed
 - **UI Layout Issue: Bottom Navigation Overlap**
-  - Fixed cards and content overlapping with bottom navigation/action buttons across all pages
-  - Added proper vertical scrolling to all screens by wrapping Routes in a <main className=" flex-1 overflow-y-auto pb-32\> container in App.tsx
+ - Fixed cards and content overlapping with bottom navigation/action buttons across all pages
+ - Added proper vertical scrolling to all screens by wrapping Routes in a <main className=\flex-1 overflow-y-auto pb-32\> container in App.tsx
  - Removed redundant min-h-screen from individual screen components (Dashboard, Nutrition, Workout, Progress, Settings)
  - Removed pb-40 padding from content containers since the main scroll container handles bottom spacing
  - Changed screen root divs from min-h-screen bg-mmrgb-bg to g-mmrgb-bg to prevent double full-height containers
