@@ -1,19 +1,51 @@
 # MMRGB Changelog
 
+## [1.1.2] - 2026-11-28
+
+### Fixed
+- **Page Freeze After Button Clicks**
+  - Root cause: Modal component set document.body.style.overflow = 'hidden' but cleanup failed when multiple modals opened/closed, leaving body permanently scroll-locked
+  - Fix: Added module-level modalCount reference counter in Modal.tsx - only locks body overflow when first modal opens, restores only when last modal closes
+  - This prevents leftover overflow: hidden on body/html after any modal/drawer interaction
+
+- **Bottom Card Still Cut Off Behind Bottom Nav**
+  - Root cause: Padding on scroll container (pb-40 pb-safe on <main>) doesn't create extra scroll space - flex/grid overflow ignores container padding-bottom
+  - Fix: Added explicit physical spacer element <div className=" h-32 w-full shrink-0\ aria-hidden=\true\ /> at bottom of scrollable content (inside <main>, after <Routes>)
+ - The 128px (h-32) spacer forces browser to allocate scrollable space below final card on every page
+ - Works on all pages: Dashboard, Nutrition, Workout, Progress, Settings, Onboarding
+
+### Modified Files
+- src/components/Modal.tsx - Added modalCount reference counter for proper body overflow management
+- src/App.tsx - Added bottom spacer element inside scrollable main container
+
+### Technical Details
+- **Scroll owner**: <main className=\flex-1 overflow-y-auto pb-40 pb-safe\> owns vertical scroll
+- **Body overflow lock**: Reference-counted (increment on modal open, decrement on close) - only locks when count goes 0?1, unlocks when 1?0
+- **Bottom spacer**: h-32 (128px) + shrink-0 ensures it's never compressed, creates guaranteed scroll space
+- **Outer shell**: min-h-dvh (100dvh) prevents mobile browser chrome from cutting off scroll area
+- Combined: 160px container padding + 128px spacer + safe-area-inset = 288px+ clearance for bottom nav (~72px)
+
+### Build
+- Verified successful TypeScript compilation ( sc -b)
+- Verified successful Vite production build (ite build)
+- Output: ~545kB JS bundle, ~41kB CSS
+
+---
+
 ## [1.1.1] - 2026-11-26
 
 ### Fixed
 - **UI Layout Issue: Bottom Navigation Overlap - Permanent Fix**
-  - Increased bottom padding on scrollable content container from pb-32 (128px) to pb-40 (160px) + pb-safe (safe-area-inset-bottom)
-  - Changed outer app shell from min-h-screen (100vh) to min-h-dvh (100dvh) to prevent mobile browser address bars from cutting off scroll area
-  - Added explicit pb-safe utility to main scrollable container for home indicator clearance on iOS/Android
-  - The scrollable <main> element now has overflow-y-auto with sufficient bottom padding (160px + safe area) so users can scroll past the final card with clear breathing room above the bottom nav bar
+ - Increased bottom padding on scrollable content container from pb-32 (128px) to pb-40 (160px) + pb-safe (safe-area-inset-bottom)
+ - Changed outer app shell from min-h-screen (100vh) to min-h-dvh (100dvh) to prevent mobile browser address bars from cutting off scroll area
+ - Added explicit pb-safe utility to main scrollable container for home indicator clearance on iOS/Android
+ - The scrollable <main> element now has overflow-y-auto with sufficient bottom padding (160px + safe area) so users can scroll past the final card with clear breathing room above the bottom nav bar
 
 ### Modified Files
 - src/App.tsx - Updated root to min-h-dvh, main container to pb-40 pb-safe
 
 ### Technical Details
-- **Scroll owner**: The <main className=" flex-1 overflow-y-auto pb-40 pb-safe\> element owns the vertical scroll
+- **Scroll owner**: The <main className=\flex-1 overflow-y-auto pb-40 pb-safe\> element owns the vertical scroll
 - **Outer shell**: min-h-dvh uses dynamic viewport height (100dvh) instead of static (100vh)
 - **Bottom nav height**: ~72px (h-16 + min-h-[4.5rem]) + safe area inset
 - **Content padding**: 160px (pb-40) + env(safe-area-inset-bottom) ensures last card clears bottom nav completely

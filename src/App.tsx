@@ -45,6 +45,8 @@ function AppContent() {
         <Route path="/settings" element={<SettingsScreen />} />
         <Route path="/" element={<DashboardScreen />} />
         </Routes>
+        {/* Bottom spacer to ensure last card clears bottom nav */}
+        <div className="h-32 w-full shrink-0" aria-hidden="true" />
       </main>
       {/* Bottom Navigation - with safe area support */}
       <nav className="fixed bottom-0 left-0 right-0 bg-mmrgb-bg/95 backdrop-blur-xl border-t border-mmrgb-border z-50 safe-bottom">

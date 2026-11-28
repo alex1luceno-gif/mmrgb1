@@ -13,14 +13,25 @@ interface ModalProps {
   closeOnOverlayClick?: boolean
 }
 
+let modalCount = 0
+
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md', className, closeOnOverlayClick = true }) => {
   if (!isOpen) return null
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handleEscape)
-    document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', handleEscape); document.body.style.overflow = '' }
+    modalCount++
+    if (modalCount === 1) {
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      modalCount--
+      if (modalCount === 0) {
+        document.body.style.overflow = ''
+      }
+    }
   }, [onClose])
 
   const sizes = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl', full: 'max-w-4xl' }
