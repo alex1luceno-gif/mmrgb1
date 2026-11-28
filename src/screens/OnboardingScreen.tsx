@@ -54,7 +54,7 @@ export const OnboardingScreen: React.FC = () => {
   }
 
   return (
-    <div className="bg-mmrgb-bg flex flex-col min-h-screen">
+    <div className="bg-mmrgb-bg flex flex-col min-h-[100dvh]">
       <div className="flex items-center justify-between p-5">
         <div className="flex items-center gap-3">
           {steps.map((s, i) => (
@@ -94,7 +94,7 @@ export const OnboardingScreen: React.FC = () => {
                       "p-4 rounded-xl border-2 text-sm font-medium transition-all",
                       formData.gender === g ? "border-mmrgb-primary bg-mmrgb-primary/10 text-mmrgb-primary" : "border-mmrgb-border text-mmrgb-textMuted hover:border-mmrgb-textMuted"
                     )}>
-                      {g === "male" ? "♂" : "♀"} {g.charAt(0).toUpperCase() + g.slice(1)}
+                      {g === "male" ? "?" : "?"} {g.charAt(0).toUpperCase() + g.slice(1)}
                     </button>
                   ))}
                 </div>

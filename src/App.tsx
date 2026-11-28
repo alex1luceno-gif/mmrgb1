@@ -31,12 +31,25 @@ function AppContent() {
     }
   }, [location, setScreen])
 
+  // Hardened: Reset body/html overflow on route changes to prevent page freeze
+  useEffect(() => {
+    const handleRouteChange = () => {
+      document.body.style.overflow = ""
+      document.documentElement.style.overflow = ""
+    }
+    window.addEventListener("popstate", handleRouteChange)
+    return () => window.removeEventListener("popstate", handleRouteChange)
+  }, [])
+
   if (!isOnboarded) {
     return <OnboardingScreen />
   }
   return (
     <>
-      <main className="flex-1 overflow-y-auto pb-40 pb-safe">
+      <main 
+        className="flex-1 overflow-y-auto pb-36 pb-safe" 
+        style={{ paddingBottom: "calc(9rem + env(safe-area-inset-bottom, 0px))" }}
+      >
         <Routes>
         <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="/nutrition" element={<NutritionScreen />} />
@@ -46,7 +59,7 @@ function AppContent() {
         <Route path="/" element={<DashboardScreen />} />
         </Routes>
         {/* Bottom spacer to ensure last card clears bottom nav */}
-        <div className="h-32 w-full shrink-0" aria-hidden="true" />
+        <div className="h-12 w-full shrink-0" aria-hidden="true" />
       </main>
       {/* Bottom Navigation - with safe area support */}
       <nav className="fixed bottom-0 left-0 right-0 bg-mmrgb-bg/95 backdrop-blur-xl border-t border-mmrgb-border z-50 safe-bottom">
